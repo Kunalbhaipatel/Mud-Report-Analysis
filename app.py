@@ -2,6 +2,7 @@ import streamlit as st
 import fitz  # PyMuPDF
 import re
 import pandas as pd
+import altair as alt
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
@@ -117,15 +118,47 @@ if uploaded_files:
         st.subheader("📊 KPI Dashboard")
         tab1, tab2, tab3 = st.tabs(["Performance KPIs", "Dilution & Losses", "Solids"])
 
-        with tab1:
-            st.line_chart(df.set_index('Date')[['ROP', 'DSRE%', 'Ave Temp']])
-            st.area_chart(df.set_index('Date')[['ROP']])
-            st.line_chart(df.set_index('Date')[['Mud Flow']])
+        
+with tab1:
+    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
+        x='Date:T',
+        y='ROP:Q',
+        tooltip=['Date', 'ROP']
+    ).properties(title="ROP Over Time", height=300), use_container_width=True)
 
-        with tab2:
-            st.bar_chart(df.set_index('Date')[['Total Dilution', 'Total SCE', 'Discard Ratio']])
-            st.line_chart(df.set_index('Date')[['Dilution Ratio']])
-            st.area_chart(df.set_index('Date')[['DSRE%']])
+    st.altair_chart(alt.Chart(df).mark_area().encode(
+        x='Date:T',
+        y='Mud Flow:Q',
+        tooltip=['Date', 'Mud Flow']
+    ).properties(title="Mud Flow Trend", height=300), use_container_width=True)
+
+    st.altair_chart(alt.Chart(df).mark_line().encode(
+        x='Date:T',
+        y='Ave Temp:Q',
+        tooltip=['Date', 'Ave Temp']
+    ).properties(title="Average Temperature", height=300), use_container_width=True)
+
+
+        
+with tab2:
+    st.altair_chart(alt.Chart(df).mark_bar().encode(
+        x='Date:T',
+        y='Total Dilution:Q',
+        tooltip=['Date', 'Total Dilution']
+    ).properties(title="Total Dilution", height=300), use_container_width=True)
+
+    st.altair_chart(alt.Chart(df).mark_bar().encode(
+        x='Date:T',
+        y='Total SCE:Q',
+        tooltip=['Date', 'Total SCE']
+    ).properties(title="Total SCE", height=300), use_container_width=True)
+
+    st.altair_chart(alt.Chart(df).mark_line().encode(
+        x='Date:T',
+        y='DSRE%:Q',
+        tooltip=['Date', 'DSRE%']
+    ).properties(title="DSRE%", height=300), use_container_width=True)
+
 
         with tab3:
             st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
