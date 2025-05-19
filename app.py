@@ -6,7 +6,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
-# --- Utility functions ---
 def safe_search(pattern, text):
     match = re.search(pattern, text)
     return match.group(1).strip() if match else ""
@@ -22,6 +21,7 @@ def extract_info_from_pdf(file):
     data['Rig Name'] = safe_search(r"Rig Name\s+(.*)", text)
     data['Well Name'] = safe_search(r"Well Name\s+(.*)", text)
     data['Date'] = safe_search(r"Date\s+(\d{4}-\d{2}-\d{2})", text)
+    data['MD (ft)'] = safe_search(r"Depth \(MD/TVD\)\s+([\d.]+)", text)
     data['Bit Size'] = safe_search(r"Bit Size\s+([\d.]+)", text)
     data['Drilling Hrs'] = safe_search(r"Drilling\s+(\d+)", text)
     data['Total Circ'] = safe_search(r"Total Circ\s+([\d.]+)", text)
@@ -58,8 +58,7 @@ def simulate_label(row):
         to_float(row['PV']) > 35
     )
 
-# --- Streamlit UI ---
-st.title("📄 Drilling Fluid Report Extractor + ML Degradation Predictor")
+st.title("📄 Drilling Fluid Report Extractor + KPI Dashboard + ML Degradation Predictor")
 
 uploaded_files = st.file_uploader("Upload Daily Drilling Fluid PDF(s)", type="pdf", accept_multiple_files=True)
 
@@ -79,8 +78,24 @@ if uploaded_files:
 
         df['Degraded'] = df.apply(simulate_label, axis=1)
 
+        # Convert necessary fields to float
+        for col in ['LGS%', 'PV', 'YP', 'Mud Flow', 'Losses', 'Base Oil', 'Water', 'Chemical', 'Total Circ', 'Drilling Hrs', 'MD (ft)']:
+            df[col] = df[col].apply(to_float)
+
+        # Calculate derived KPIs
+        df['Total SCE'] = df['Losses']
+        df['Discard Ratio'] = df['Total SCE'] / df['Total Circ']
+        df['Total Dilution'] = df[['Base Oil', 'Water', 'Chemical']].sum(axis=1)
+        df['Dilution Ratio'] = df['Total Dilution'] / df['Total Circ']
+        df['DSRE%'] = (df['Total Dilution'] / (df['Total Dilution'] + df['Total SCE'])) * 100
+        df['ROP'] = df['MD (ft)'] / df['Drilling Hrs']
+        df['Ave Temp'] = df['Mud Weight'].str.extract(r'@\s*(\d+)').astype(float)
+        df['Mud Cutting Ratio'] = df['LGS%'] / df['Total Circ'] * 100
+        df['Solid Generate'] = df['LGS%'] * df['Total Circ'] / 100
+
+        # ML Model
         features = ['LGS%', 'PV', 'YP', 'Mud Flow', 'Losses']
-        X = df[features].applymap(to_float)
+        X = df[features]
         y = df['Degraded']
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
@@ -96,5 +111,19 @@ if uploaded_files:
         y_pred = clf.predict(X_test)
         st.text(classification_report(y_test, y_pred))
 
+        # Charts in tabs
+        st.subheader("📊 KPI Dashboard")
+        tab1, tab2, tab3 = st.tabs(["Performance KPIs", "Dilution & Losses", "Solids"])
+
+        with tab1:
+            st.line_chart(df.set_index('Date')[['ROP', 'DSRE%', 'Ave Temp']])
+
+        with tab2:
+            st.bar_chart(df.set_index('Date')[['Total Dilution', 'Total SCE', 'Discard Ratio']])
+
+        with tab3:
+            st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
+
+        # Download
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("Download CSV", csv, "fluid_reports_ml.csv", "text/csv")
+        st.download_button("Download CSV", csv, "fluid_kpis_ml.csv", "text/csv")
