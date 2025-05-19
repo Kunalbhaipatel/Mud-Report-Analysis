@@ -79,6 +79,17 @@ if uploaded_files:
         st.success("✅ Data Extracted!")
         st.dataframe(df)
 
+        # --- Filter Controls ---
+        with st.sidebar:
+            st.header("🔍 Filters")
+            well_options = df['Well Name'].dropna().unique().tolist()
+            selected_wells = st.multiselect("Select Well(s)", well_options, default=well_options)
+            date_range = st.date_input("Select Date Range", [df['Date'].min(), df['Date'].max()])
+
+        df = df[df['Well Name'].isin(selected_wells)]
+        df = df[(df['Date'] >= pd.to_datetime(date_range[0])) & (df['Date'] <= pd.to_datetime(date_range[1]))]
+
+
         df['Degraded'] = df.apply(simulate_label, axis=1)
 
         # Convert necessary fields to float
@@ -119,8 +130,8 @@ if uploaded_files:
         tab1, tab2, tab3 = st.tabs(["Performance KPIs", "Dilution & Losses", "Solids"])
 
         
-with tab1:    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
-        x='Date:T',
+    with tab1:    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
+x='Date:T',
         y='ROP:Q',
         tooltip=['Date', 'ROP']
     ).properties(title="ROP Over Time", height=300), use_container_width=True)
@@ -139,8 +150,8 @@ with tab1:    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
 
 
         
-with tab2:    st.altair_chart(alt.Chart(df).mark_bar().encode(
-        x='Date:T',
+    with tab2:    st.altair_chart(alt.Chart(df).mark_bar().encode(
+x='Date:T',
         y='Total Dilution:Q',
         tooltip=['Date', 'Total Dilution']
     ).properties(title="Total Dilution", height=300), use_container_width=True)
@@ -158,8 +169,7 @@ with tab2:    st.altair_chart(alt.Chart(df).mark_bar().encode(
     ).properties(title="DSRE%", height=300), use_container_width=True)
 
 
-with tab3:            st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
-
+    with tab3:            st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
         # Download
         csv = df.to_csv(index=False).encode('utf-8')
         st.download_button("Download CSV", csv, "fluid_kpis_ml.csv", "text/csv")
