@@ -73,6 +73,8 @@ if uploaded_files:
 
     if records:
         df = pd.DataFrame(records)
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.sort_values('Date', inplace=True)
         st.success("✅ Data Extracted!")
         st.dataframe(df)
 
@@ -117,9 +119,13 @@ if uploaded_files:
 
         with tab1:
             st.line_chart(df.set_index('Date')[['ROP', 'DSRE%', 'Ave Temp']])
+            st.area_chart(df.set_index('Date')[['ROP']])
+            st.line_chart(df.set_index('Date')[['Mud Flow']])
 
         with tab2:
             st.bar_chart(df.set_index('Date')[['Total Dilution', 'Total SCE', 'Discard Ratio']])
+            st.line_chart(df.set_index('Date')[['Dilution Ratio']])
+            st.area_chart(df.set_index('Date')[['DSRE%']])
 
         with tab3:
             st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
