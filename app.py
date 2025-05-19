@@ -160,7 +160,7 @@ with tab2:
     ).properties(title="DSRE%", height=300), use_container_width=True)
 
 
-        with tab3:
+            with tab3:
             st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
 
         # Download
