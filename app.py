@@ -119,8 +119,7 @@ if uploaded_files:
         tab1, tab2, tab3 = st.tabs(["Performance KPIs", "Dilution & Losses", "Solids"])
 
         
-with tab1:
-    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
+with tab1:    st.altair_chart(alt.Chart(df).mark_line(point=True).encode(
         x='Date:T',
         y='ROP:Q',
         tooltip=['Date', 'ROP']
@@ -140,8 +139,7 @@ with tab1:
 
 
         
-with tab2:
-    st.altair_chart(alt.Chart(df).mark_bar().encode(
+with tab2:    st.altair_chart(alt.Chart(df).mark_bar().encode(
         x='Date:T',
         y='Total Dilution:Q',
         tooltip=['Date', 'Total Dilution']
@@ -160,8 +158,7 @@ with tab2:
     ).properties(title="DSRE%", height=300), use_container_width=True)
 
 
-            with tab3:
-            st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
+with tab3:            st.area_chart(df.set_index('Date')[['Solid Generate', 'Mud Cutting Ratio']])
 
         # Download
         csv = df.to_csv(index=False).encode('utf-8')
